@@ -1,0 +1,27 @@
+{
+  "name": "valimini",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && tsc -p tsconfig.lib.json",
+    "preview": "vite preview",
+    "build:demo": "tsc --noEmit && vite build --outDir demo-dist",
+    "test": "npm run build && node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "typescript": "~7.0.2",
+    "vite": "^8.3.6"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ]
+}

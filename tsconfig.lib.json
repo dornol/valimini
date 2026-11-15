@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "declaration": true,
+    "outDir": "dist",
+    "types": [],
+    "lib": [
+      "ES2023", "DOM"
+    ],
+    "strict": true,
+    "rootDir": "src"
+  },
+  "include": [
+    "src/index.ts"
+  ]
+}
