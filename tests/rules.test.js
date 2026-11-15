@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createValidator, required, pattern, number, integer, min, max, url, oneOf, matchesField } from '../dist/index.js'
+import { createValidator, required, pattern, number, integer, min, max, url, oneOf, matchesField } from '../dist/valimini.js'
 
 const accepts = (rule, value) => createValidator({ value: [rule] }).validate({ value }).valid
 

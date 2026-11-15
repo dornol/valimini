@@ -8,12 +8,43 @@
 npm install
 npm run dev        # HTML 폼 예제
 npm test           # 타입 검사, 라이브러리 빌드, Node.js 테스트
-npm run build      # dist/index.js, dist/index.d.ts
+npm run build      # dist/valimini.js, dist/index.d.ts
 npm run build:demo # demo-dist/에 예제 웹 앱 빌드
 npm run preview -- --outDir demo-dist
 ```
 
 현재 패키지는 `private: true`이며 npm 배포는 설정하지 않았습니다.
+
+## 다운로드
+
+[GitHub Releases](https://github.com/dornol/valimini/releases)에서 JavaScript 파일을 내려받을 수 있습니다.
+
+| 파일 | 용도 |
+| --- | --- |
+| `valimini.js` | `import`로 사용하는 ES 모듈 |
+| `valimini.global.js` | 일반 `<script>`로 사용하는 전역 `Valimini` 객체 |
+| `index.d.ts` | TypeScript 타입 선언 |
+
+일반 HTML에서는 파일을 복사한 뒤 아래처럼 사용합니다.
+
+```html
+<script src="./valimini.global.js"></script>
+<script>
+  const validator = Valimini.createValidator({
+    email: [Valimini.required(), Valimini.email()],
+  });
+  const result = validator.validate({ email: 'hello@example.com' });
+</script>
+```
+
+모듈 방식에서는 웹 서버에서 제공하는 파일을 가져옵니다.
+
+```html
+<script type="module">
+  import { createValidator, required } from './valimini.js';
+  const validator = createValidator({ name: [required()] });
+</script>
+```
 
 ## 사용
 
@@ -26,7 +57,7 @@ npm run preview -- --outDir demo-dist
   <button type="submit">검증</button>
 </form>
 <script type="module">
-  import { createValidator, required, minLength, custom } from './dist/index.js';
+  import { createValidator, required, minLength, custom } from './dist/valimini.js';
 
   const validator = createValidator({
     password: [required(), minLength(8)],
@@ -120,7 +151,7 @@ npm run preview -- --outDir demo-dist
 import {
   createValidator, required, pattern, number, integer,
   min, max, url, oneOf, matchesField,
-} from './dist/index.js';
+} from './dist/valimini.js';
 
 const validator = createValidator({
   username: [required(), pattern(/^[a-z][a-z0-9_]{2,19}$/)],
@@ -149,7 +180,7 @@ import {
   createValidator, required, number, integer, min, max, accepted,
   requiredIf, notOneOf, notMatchesField, date, before, after,
   minItems, maxItems, uniqueItems,
-} from './dist/index.js';
+} from './dist/valimini.js';
 
 const numeric = { allowString: true, thousandsSeparator: ',' };
 const validator = createValidator({
@@ -184,7 +215,7 @@ const result = validator.validate(data);
 ## 시간 검증
 
 ```js
-import { createValidator, required, time, afterTime, beforeTime } from './dist/index.js';
+import { createValidator, required, time, afterTime, beforeTime } from './dist/valimini.js';
 
 const validator = createValidator({
   contactTime: [required(), time(), afterTime('09:00'), beforeTime('18:00')],
@@ -204,7 +235,7 @@ const validator = createValidator({
 ## 리스트의 각 항목 검증
 
 ```js
-import { createValidator, required, email, integer, min, each, minItems } from './dist/index.js';
+import { createValidator, required, email, integer, min, each, minItems } from './dist/valimini.js';
 
 const userValidator = createValidator({
   name: [required()],
@@ -274,3 +305,15 @@ const result = validator.validate({
   }],
 });
 ```
+
+## GitHub Release
+
+`package.json`과 `package-lock.json`의 버전을 갱신하고 커밋한 다음 동일한 버전 태그를 푸시합니다.
+
+```bash
+# 예: 버전이 0.0.1인 커밋에서 실행
+git tag v0.0.1
+git push origin main v0.0.1
+```
+
+`.github/workflows/release.yml`이 태그와 패키지 버전의 일치를 검사하고 `npm ci`, `npm test`, 데모 빌드를 실행한 다음 GitHub Release에 두 JS 파일과 타입 선언을 첨부합니다. npm 레지스트리 배포는 수행하지 않습니다. 태그와 공개된 릴리즈 파일은 해당 버전의 배포 기준으로 유지하고, 변경 사항은 새 버전으로 릴리즈합니다.

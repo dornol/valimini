@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { createValidator, required, email, minLength, maxLength, custom } from '../dist/index.js'
+import { createValidator, required, email, minLength, maxLength, custom } from '../dist/valimini.js'
 
 test('returns the first error in rule declaration order and one error per field', () => {
   const validator = createValidator({

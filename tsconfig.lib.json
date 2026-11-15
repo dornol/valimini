@@ -7,10 +7,12 @@
     "outDir": "dist",
     "types": [],
     "lib": [
-      "ES2023", "DOM"
+      "ES2023",
+      "DOM"
     ],
     "strict": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    "emitDeclarationOnly": true
   },
   "include": [
     "src/index.ts"

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   createValidator, required, accepted, notOneOf, notMatchesField, requiredIf,
   date, before, after, minItems, maxItems, uniqueItems, number, integer, min, max,
-} from '../dist/index.js'
+} from '../dist/valimini.js'
 
 const accepts = (rule, value) => createValidator({ value: [rule] }).validate({ value }).valid
 
