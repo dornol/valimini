@@ -317,3 +317,5 @@ git push origin main v0.0.1
 ```
 
 `.github/workflows/release.yml`이 태그와 패키지 버전의 일치를 검사하고 `npm ci`, `npm test`, 데모 빌드를 실행한 다음 GitHub Release에 두 JS 파일과 타입 선언을 첨부합니다. npm 레지스트리 배포는 수행하지 않습니다. 태그와 공개된 릴리즈 파일은 해당 버전의 배포 기준으로 유지하고, 변경 사항은 새 버전으로 릴리즈합니다.
+
+태그 푸시 후 자동 실행되지 않거나 재시도가 필요하면 Actions → Release → Run workflow에서 기존 태그를 입력할 수 있습니다. CLI에서는 `gh workflow run release.yml -f tag=v0.0.1`로 실행합니다. 이미 공개된 같은 버전의 Release가 있으면 새로 만들지 않고 실패하므로 기존 파일을 덮어쓰지 않습니다.
