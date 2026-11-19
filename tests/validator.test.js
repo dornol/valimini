@@ -56,6 +56,39 @@ test('length boundaries, wrong types, and email format', () => {
   for (const value of [-1, 1.2, NaN, Infinity]) assert.throws(() => minLength(value), RangeError)
 })
 
+test('email validates local-part and domain syntax', () => {
+  const mail = createValidator({ value: [email('이메일을 확인해주세요.')] })
+  for (const value of [
+    'First.Last+tag@sub.example.co.kr', "o'connor@example.com", 'a_b@my-domain.example',
+    'user@xn--bcher-kva.example',
+  ]) {
+    assert.equal(mail.validate({ value }).valid, true, value)
+  }
+
+  for (const value of [
+    '.a@example.com', 'a.@example.com', 'a..b@example.com', 'a,b@example.com', 'a\u0000b@example.com',
+    'a@.example.com', 'a@example..com', 'a@example.com.', 'a@-example.com', 'a@example-.com',
+    'a@ex_ample.com', 'a@exam!ple.com', 'a@example', 'a@example.com\n', 'a@bücher.example',
+  ]) {
+    const result = mail.validate({ value })
+    assert.equal(result.valid, false, JSON.stringify(value))
+    assert.equal(result.firstError.code, 'email')
+    assert.equal(result.firstError.message, '이메일을 확인해주세요.')
+  }
+})
+
+test('email enforces local-part, domain label, and total length limits', () => {
+  const mail = createValidator({ value: [email()] })
+  const local = 'a'.repeat(64)
+  const label = 'b'.repeat(63)
+  const domain = `${label}.${label}.${'c'.repeat(61)}`
+
+  assert.equal(mail.validate({ value: `${local}@${domain}` }).valid, true)
+  assert.equal(mail.validate({ value: `${local}a@example.com` }).valid, false)
+  assert.equal(mail.validate({ value: `a@${label}b.example` }).valid, false)
+  assert.equal(mail.validate({ value: `${local}@${domain}c` }).valid, false)
+})
+
 test('reusable validator preserves input, ignores undeclared fields, and produces fresh results', () => {
   const data = Object.freeze({ name: 'valid', extra: 'anything' })
   const rules = { name: [required()] }

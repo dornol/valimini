@@ -116,14 +116,25 @@ npm run preview -- --outDir demo-dist
 ## 규칙과 동작
 
 - `required(message?)`: `undefined`, `null`, 빈 문자열, 공백 문자열, 빈 배열을 거부합니다. `0`과 `false`는 유효합니다.
-- `email(message?)`: 문자열의 기본 이메일 형식을 확인합니다. 메일함 존재 여부는 검사하지 않습니다.
+- `email(message?)`: 따옴표 없는 ASCII 로컬 파트와 점으로 구분된 두 개 이상의 ASCII 도메인 라벨을 검사합니다. 로컬 파트의 처음·끝 또는 연속된 점, 도메인 라벨의 처음·끝 하이픈을 거부합니다. 길이는 전체 254자, 로컬 파트 64자, 도메인 라벨당 63자까지 허용합니다. 국제화 도메인은 Punycode 표기로 입력할 수 있습니다. 메일함 존재 여부는 검사하지 않습니다.
+- `koreanTelephone(message?)`는 지역번호가 있는 유선전화와 `070` 인터넷전화를 받습니다.
+- `koreanMobile(message?)`은 `010` 휴대전화를 받습니다.
+- `koreanPhone(message?)`은 일반전화나 휴대전화 중 하나를 받습니다.
+- `koreanRepresentativeNumber(message?)`는 `14xxxx` 6자리 수신자부담 대표번호와 `15xx-xxxx`, `16xx-xxxx`, `18xx-xxxx` 8자리 전국대표번호를 받습니다. 8자리 번호에는 하이픈이나 공백 하나를 쓰거나 구분자를 생략할 수 있습니다.
+- `koreanTollFreeNumber(message?)`는 `080-123-4567` 또는 `080-1234-5678` 형태의 국내 수신자부담 번호를 받습니다. 두 구분자를 모두 공백으로 쓰거나 모두 생략할 수 있습니다.
+- `koreanContactNumber(message?)`는 일반전화, 휴대전화, 전국대표번호 중 하나를 받습니다.
+- `koreanFax(message?)`는 유선전화, `070` 인터넷전화, `050x` 전자팩스 형식을 받습니다.
+- `koreanPostalCode(message?)`는 앞에 `0`이 올 수 있는 5자리 숫자 문자열을 검사합니다.
+- `koreanBusinessRegistrationNumber(message?)`는 `123-45-67891` 또는 `1234567891` 형태의 문자열을 받고 마지막 검증 숫자를 검사합니다. 사업자 등록 상태는 조회하지 않습니다.
+- `koreanCorporateRegistrationNumber(options?, message?)`는 `110111-1234567`이나 `1101111234567` 형태의 13자리 법인등록번호를 검사합니다. 2025년 1월 31일 전에 부여된 번호만 검사하는 경우 `{ legacyChecksum: true }`로 예전 오류검색번호를 확인할 수 있습니다. `koreanCorporateRegistrationNumber(message)` 형태도 지원합니다. [법인등록번호 부여 규칙과 경과조치](https://www.law.go.kr/lsInfoP.do?lsId=005861)
 - `minLength(limit, message?)`, `maxLength(limit, message?)`: 문자열 또는 배열의 길이를 검사합니다. 문자열 길이는 JavaScript의 `.length` 기준입니다.
 - `pattern(regex, message?)`: 문자열 정규식 검사입니다. `g`, `y` 플래그를 사용해도 반복 검증 결과가 바뀌지 않으며 원본 정규식 상태를 변경하지 않습니다.
 - `number(options?, message?)`: 유한한 숫자를 검사합니다. 기본은 number 타입만 허용하며 옵션으로 숫자 문자열과 콤마를 허용할 수 있습니다. `number(message)` 형태도 유지합니다.
-- `integer(options?, message?)`: 같은 숫자 옵션으로 유한한 정수를 검사합니다. `integer(message)` 형태도 유지합니다.
-- `min(limit, options?, message?)`, `max(limit, options?, message?)`: 같은 숫자 옵션으로 최솟값·최댓값을 경계 포함으로 검사합니다. 한계값은 유한한 숫자여야 합니다. 기존 `min(limit, message)`, `max(limit, message)`도 지원합니다.
-- `url(message?)`: 절대 HTTP/HTTPS URL을 검사합니다. 상대 경로와 다른 프로토콜, 공백을 포함한 입력은 거부합니다. 접속 가능 여부는 확인하지 않습니다.
+- `integer(options?, message?)`: 유한한 정수를 검사합니다. 숫자 문자열은 소수부가 모두 `0`이면 허용합니다. `safe: true`는 JavaScript의 안전 정수 범위도 검사합니다. `integer(message)` 형태도 지원합니다.
+- `min(limit, options?, message?)`, `max(limit, options?, message?)`: 최솟값·최댓값을 경계 포함으로 검사합니다. 한계값은 유한한 숫자여야 합니다. `exactDecimal: true`를 사용하면 숫자 문자열을 반올림 없이 비교합니다. `min(limit, message)`, `max(limit, message)` 형태도 지원합니다.
+- `url(message?)`: 절대 HTTP/HTTPS URL을 검사합니다. `http://` 또는 `https://` 뒤에 호스트가 바로 와야 하며, 원문에 공백·제어 문자·역슬래시가 있으면 거부합니다. 접속 가능 여부는 확인하지 않습니다.
 - `oneOf(values, message?)`: 허용 목록에 있는 값인지 검사합니다. 타입을 변환하지 않으며 객체는 참조 기준으로 비교합니다. 목록은 생성 시 복사합니다.
+- `anyOf(rules, message?)`는 같은 값을 목록의 룰에 순서대로 적용하고 하나가 통과하면 성공합니다. 모두 실패하면 `anyOf` 오류를 하나 반환합니다. 빈 룰 목록은 생성 시 `RangeError`를 발생시킵니다. 빈 입력은 모든 하위 룰이 빈 입력도 검사하는 경우에만 평가합니다.
 - `matchesField(field, message?)`: 현재 값과 다른 최상위 필드의 값을 `===`로 비교합니다. 대상 필드가 없으면 실패합니다.
 - `accepted(message?)`: 정확히 `true`여야 통과합니다. 누락되거나 비어 있어도 검사합니다.
 - `notOneOf(values, message?)`: 금지 목록의 값이면 실패합니다. 목록을 복사하며 비교 방식은 `Set`과 같습니다.
@@ -134,6 +145,8 @@ npm run preview -- --outDir demo-dist
 - `minItems(limit, message?)`, `maxItems(limit, message?)`: 배열 항목 수를 경계 포함으로 검사합니다. 빈 배열도 개수를 검사합니다. 누락·null·빈 문자열은 선택 항목으로 건너뛰므로 필수 배열에는 `required()`도 사용하세요.
 - `uniqueItems(message?)`: 배열 중복을 검사합니다. `Set` 기준으로 비교하여 NaN끼리는 중복이고, 객체는 같은 참조일 때만 중복입니다.
 - `custom((value, data) => boolean, message, code?)`: 현재 값과 전체 데이터를 사용하는 동기 규칙입니다. 기본 코드는 `custom`입니다.
+
+일반전화, 휴대전화, 팩스에는 숫자 묶음 사이에 하이픈이나 공백을 쓰거나 구분자를 모두 생략할 수 있습니다. 국제 표기는 국내 번호의 앞 `0`을 `+82`로 바꿉니다. 예를 들어 `01012345678`, `02-123-4567`, `070 1234 5678`, `0504-123-4567`, `+82 10-1234-5678`처럼 입력할 수 있습니다. 전국대표번호는 국내 표기를 사용합니다. 전화번호 룰은 내선번호를 제외하며, 실제 개통 여부나 팩스 수신 가능 여부는 확인하지 않습니다.
 
 빈 값은 일반 규칙에서 건너뜁니다. `required`, `requiredIf`, `accepted`는 빈 값에서도 실행하며, 배열 개수 규칙은 빈 배열의 길이도 검사합니다. 필수 항목에는 `required()`를 추가하세요. 각 필드에서 처음 실패한 규칙의 오류를 수집하고 다른 필드의 검증은 계속합니다. `each`가 실패하면 각 항목의 오류를 모으며, 항목별로는 처음 실패한 규칙까지만 검사합니다. 객체 항목은 각 속성의 첫 오류를 수집합니다. `firstError`는 규칙 객체의 필드 순서에 따릅니다. 정수 형태의 필드 이름은 JavaScript 객체 순서에 따라 숫자 순으로 처리됩니다.
 
@@ -150,13 +163,15 @@ npm run preview -- --outDir demo-dist
 ```js
 import {
   createValidator, required, pattern, number, integer,
-  min, max, url, oneOf, matchesField,
+  min, max, url, koreanContactNumber, koreanMobile, email, anyOf, oneOf, matchesField,
 } from './dist/valimini.js';
 
 const validator = createValidator({
   username: [required(), pattern(/^[a-z][a-z0-9_]{2,19}$/)],
   age: [required(), number(), integer(), min(14), max(120)],
   homepage: [url()],
+  phone: [required(), koreanContactNumber()],
+  recoveryContact: [required(), anyOf([email(), koreanMobile()], '이메일 또는 휴대전화 번호를 입력해주세요.')],
   role: [required(), oneOf(['user', 'admin'])],
   passwordConfirm: [required(), matchesField('password', '비밀번호가 일치하지 않습니다.')],
 });
@@ -210,7 +225,11 @@ const result = validator.validate(data);
 
 `"1,000"`, `"1,000.50"`, `"-1,000"`은 허용하고 `"1,00"`, `"1,2,3"`, `"01,000"`은 거부합니다. 앞뒤 공백은 제거해서 검사합니다. 지수 표기, 16진수, 소수점 앞뒤 숫자가 생략된 문자열은 지원하지 않습니다. 빈 문자열은 기존 선택 항목 정책에 따릅니다.
 
-검사 중에만 JavaScript Number로 해석하며 원본 문자열은 변경하지 않습니다. 매우 큰 정수와 소수의 정밀도는 JavaScript Number의 범위를 따릅니다. TypeScript에서 옵션 객체를 변수로 공유할 때는 `NumericOptions` 타입 또는 `as const`를 사용하면 됩니다.
+`integer({ allowString: true, safe: true })`는 `"1.0"`을 허용하고 `"1.00000000000000001"`과 `"9007199254740993"`을 거부합니다. `safe`는 숫자 타입 입력에도 적용됩니다.
+
+`max(1, { allowString: true, exactDecimal: true })`는 `"1.00000000000000001"`을 거부합니다. 이 옵션은 `Number`로 변환했을 때 유한한 문자열에 적용되며, 원래 문자열의 자릿수를 `String(limit)`의 십진수 표기와 비교합니다. 숫자 타입 입력은 일반 숫자 비교를 사용합니다.
+
+검사 중에도 원본 문자열은 변경하지 않습니다. 기본 숫자 비교의 정밀도는 JavaScript `Number`를 따릅니다. TypeScript에서 옵션 객체에는 공통 `NumericOptions`, `safe`를 포함한 `IntegerOptions`, `exactDecimal`을 포함한 `RangeOptions` 타입을 사용할 수 있습니다.
 
 ## 시간 검증
 

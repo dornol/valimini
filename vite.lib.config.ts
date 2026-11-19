@@ -3,6 +3,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   build: {
     target: 'es2022',
+    rolldownOptions: {
+      output: { minify: true },
+    },
     lib: {
       entry: 'src/index.ts',
       name: 'Valimini',

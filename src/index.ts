@@ -47,10 +47,133 @@ export function required(message = '필수 입력 항목입니다.'): Rule {
   return { code: 'required', message, required: true, test: value => !isEmpty(value) }
 }
 
+const emailLocalPart = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/i
+const emailDomain = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i
+
 export function email(message = '이메일 형식이 올바르지 않습니다.'): Rule {
   return {
     code: 'email', message,
-    test: value => typeof value === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
+    test: value => {
+      if (typeof value !== 'string' || value.length > 254) return false
+      const at = value.indexOf('@')
+      return at > 0 && at <= 64 &&
+        emailLocalPart.test(value.slice(0, at)) && emailDomain.test(value.slice(at + 1))
+    },
+  }
+}
+
+const koreanMobileNumber = /^(?:0|\+82[- ]?)10([- ]?)[0-9]{4}\1[0-9]{4}$/
+const koreanInternetPhone = /^(?:0|\+82[- ]?)70([- ]?)[0-9]{4}\1[0-9]{4}$/
+const koreanLandline = /^(?:0|\+82[- ]?)(?:2|3[1-3]|4[1-4]|5[1-5]|6[1-4])([- ]?)[0-9]{3,4}\1[0-9]{4}$/
+const koreanVirtualFax = /^(?:0|\+82[- ]?)50[0-9]([- ]?)[0-9]{3,4}\1[0-9]{4}$/
+const koreanRepresentative = /^(?:14[0-9]{4}|1[568][0-9]{2}[- ]?[0-9]{4})$/
+
+function isKoreanTelephone(value: string): boolean {
+  return koreanLandline.test(value) || koreanInternetPhone.test(value)
+}
+
+function isKoreanPhone(value: string): boolean {
+  return isKoreanTelephone(value) || koreanMobileNumber.test(value)
+}
+
+export function koreanTelephone(message = '한국 일반전화 번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanTelephone', message,
+    test: value => typeof value === 'string' && isKoreanTelephone(value),
+  }
+}
+
+export function koreanMobile(message = '한국 휴대전화 번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanMobile', message,
+    test: value => typeof value === 'string' && koreanMobileNumber.test(value),
+  }
+}
+
+export function koreanPhone(message = '한국 전화번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanPhone', message,
+    test: value => typeof value === 'string' && isKoreanPhone(value),
+  }
+}
+
+export function koreanRepresentativeNumber(message = '전국대표번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanRepresentativeNumber', message,
+    test: value => typeof value === 'string' && koreanRepresentative.test(value),
+  }
+}
+
+export function koreanTollFreeNumber(message = '수신자부담 번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanTollFreeNumber', message,
+    test: value => typeof value === 'string' && /^080([- ]?)[0-9]{3,4}\1[0-9]{4}$/.test(value),
+  }
+}
+
+export function koreanContactNumber(message = '한국 연락처 번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanContactNumber', message,
+    test: value => typeof value === 'string' && (isKoreanPhone(value) || koreanRepresentative.test(value)),
+  }
+}
+
+export function koreanFax(message = '한국 팩스 번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanFax', message,
+    test: value => typeof value === 'string' &&
+      (isKoreanTelephone(value) || koreanVirtualFax.test(value)),
+  }
+}
+
+export function koreanPostalCode(message = '한국 우편번호는 숫자 5자리여야 합니다.'): Rule {
+  return {
+    code: 'koreanPostalCode', message,
+    test: value => typeof value === 'string' && /^[0-9]{5}$/.test(value),
+  }
+}
+
+const businessRegistrationWeights = [1, 3, 7, 1, 3, 7, 1, 3]
+
+export function koreanBusinessRegistrationNumber(message = '사업자등록번호 형식이 올바르지 않습니다.'): Rule {
+  return {
+    code: 'koreanBusinessRegistrationNumber', message,
+    test: value => {
+      if (typeof value !== 'string' || !/^[0-9]{3}(-?)[0-9]{2}\1[0-9]{5}$/.test(value)) return false
+      const digits = value.replaceAll('-', '')
+      if (digits === '0000000000') return false
+      const weightedSum = businessRegistrationWeights.reduce((sum, weight, index) => sum + Number(digits[index]) * weight, 0)
+      const lastProduct = Number(digits[8]) * 5
+      const checksumSum = weightedSum + Math.floor(lastProduct / 10) + lastProduct % 10
+      return (checksumSum + Number(digits[9])) % 10 === 0
+    },
+  }
+}
+
+export interface KoreanCorporateRegistrationOptions {
+  readonly legacyChecksum?: boolean
+}
+
+export function koreanCorporateRegistrationNumber(
+  options: KoreanCorporateRegistrationOptions | string = {},
+  message = '법인등록번호 형식이 올바르지 않습니다.',
+): Rule {
+  const legacyChecksum = typeof options !== 'string' && options.legacyChecksum === true
+  return {
+    code: 'koreanCorporateRegistrationNumber',
+    message: typeof options === 'string' ? options : message,
+    test: value => {
+      if (typeof value !== 'string' || !/^[0-9]{6}-?[0-9]{7}$/.test(value)) return false
+      const digits = value.replace('-', '')
+      if (digits === '0000000000000') return false
+      if (!legacyChecksum) return true
+
+      let weightedSum = 0
+      for (let index = 0; index < 12; index++) {
+        weightedSum += Number(digits[index]) * (index % 2 + 1)
+      }
+      return (weightedSum + Number(digits[12])) % 10 === 0
+    },
   }
 }
 
@@ -93,33 +216,42 @@ export interface NumericOptions {
   readonly thousandsSeparator?: ','
 }
 
+export interface IntegerOptions extends NumericOptions {
+  readonly safe?: boolean
+}
+
+export interface RangeOptions extends NumericOptions {
+  readonly exactDecimal?: boolean
+}
+
 type NumericArgument = NumericOptions | string
 
 function numericRule(
   code: string,
   argument: NumericArgument,
   defaultMessage: string,
-  compare: (value: number) => boolean,
+  compare: (value: number, decimalText?: string) => boolean,
   message?: string,
 ): Rule {
   const options = typeof argument === 'string' ? {} : { ...argument }
   if (options.thousandsSeparator !== undefined && options.thousandsSeparator !== ',') {
     throw new TypeError('현재 천 단위 구분자는 콤마만 지원합니다.')
   }
+  const format = options.thousandsSeparator === ','
+    ? /^[+-]?(?:[0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?$/
+    : /^[+-]?[0-9]+(?:\.[0-9]+)?$/
   return {
     code,
     message: typeof argument === 'string' ? argument : message ?? defaultMessage,
     test: value => {
-      let numeric = value
       if (typeof value === 'string' && options.allowString) {
         const text = value.trim()
-        const format = options.thousandsSeparator === ','
-          ? /^[+-]?(?:[0-9]+|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?$/
-          : /^[+-]?[0-9]+(?:\.[0-9]+)?$/
         if (!format.test(text)) return false
-        numeric = Number(text.replaceAll(',', ''))
+        const decimalText = text.replaceAll(',', '')
+        const numeric = Number(decimalText)
+        return isFiniteNumber(numeric) && compare(numeric, decimalText)
       }
-      return isFiniteNumber(numeric) && compare(numeric)
+      return isFiniteNumber(value) && compare(value)
     },
   }
 }
@@ -128,31 +260,62 @@ export function number(options: NumericArgument = {}, message?: string): Rule {
   return numericRule('number', options, '숫자를 입력해주세요.', () => true, message)
 }
 
-export function integer(options: NumericArgument = {}, message?: string): Rule {
-  return numericRule('integer', options, '정수를 입력해주세요.', Number.isInteger, message)
+export function integer(options: IntegerOptions | string = {}, message?: string): Rule {
+  const isInteger = typeof options !== 'string' && options.safe ? Number.isSafeInteger : Number.isInteger
+  return numericRule('integer', options, '정수를 입력해주세요.', (value, decimalText) =>
+    isInteger(value) && (decimalText === undefined || !/\.[0-9]*[1-9]/.test(decimalText)), message)
+}
+
+function decimalParts(text: string) {
+  const [mantissa, exponent = '0'] = text.split('e')
+  const [whole, fraction = ''] = mantissa.replace(/^[+-]/, '').split('.')
+  const allDigits = whole + fraction
+  const significant = allDigits.replace(/^0+/, '')
+  if (significant === '') return { sign: 0, decimalPosition: 0, digits: '' }
+  return {
+    sign: mantissa.startsWith('-') ? -1 : 1,
+    decimalPosition: whole.length - (allDigits.length - significant.length) + Number(exponent),
+    digits: significant.replace(/([1-9])0+$/, '$1'),
+  }
+}
+
+function compareDecimals(value: ReturnType<typeof decimalParts>, limit: ReturnType<typeof decimalParts>): number {
+  if (value.sign !== limit.sign) return value.sign - limit.sign
+  // Compare magnitude by the decimal point position, then by the significant digits.
+  const positions = value.decimalPosition - limit.decimalPosition
+  if (positions !== 0) return positions * value.sign
+  if (value.digits === limit.digits) return 0
+  return value.digits > limit.digits ? value.sign : -value.sign
 }
 
 function rangeRule(
-  code: string, limit: number, options: NumericArgument, defaultMessage: string,
-  compare: (value: number) => boolean, message?: string,
+  code: string, limit: number, options: RangeOptions | string, defaultMessage: string,
+  withinRange: (comparison: number) => boolean, message?: string,
 ): Rule {
   if (!isFiniteNumber(limit)) throw new RangeError('범위는 유한한 숫자여야 합니다.')
-  return numericRule(code, options, defaultMessage, compare, message)
+  const decimalLimit = typeof options !== 'string' && options.exactDecimal ? decimalParts(String(limit)) : undefined
+  return numericRule(code, options, defaultMessage, (value, decimalText) => {
+    if (decimalLimit && decimalText !== undefined) {
+      return withinRange(compareDecimals(decimalParts(decimalText), decimalLimit))
+    }
+    return withinRange(value - limit)
+  }, message)
 }
 
-export function min(limit: number, options: NumericArgument = {}, message?: string): Rule {
-  return rangeRule('min', limit, options, `${limit} 이상 입력해주세요.`, value => value >= limit, message)
+export function min(limit: number, options: RangeOptions | string = {}, message?: string): Rule {
+  return rangeRule('min', limit, options, `${limit} 이상 입력해주세요.`, comparison => comparison >= 0, message)
 }
 
-export function max(limit: number, options: NumericArgument = {}, message?: string): Rule {
-  return rangeRule('max', limit, options, `${limit} 이하로 입력해주세요.`, value => value <= limit, message)
+export function max(limit: number, options: RangeOptions | string = {}, message?: string): Rule {
+  return rangeRule('max', limit, options, `${limit} 이하로 입력해주세요.`, comparison => comparison <= 0, message)
 }
 
 export function url(message = 'URL 형식이 올바르지 않습니다.'): Rule {
   return {
     code: 'url', message,
     test: value => {
-      if (typeof value !== 'string' || /\s/.test(value) || !/^https?:\/\//i.test(value)) return false
+      if (typeof value !== 'string' || /[\s\\\u0000-\u001f\u007f-\u009f]/.test(value) ||
+        !/^https?:\/\/[^/?#]/i.test(value)) return false
       try {
         const parsed = new URL(value)
         return (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname !== ''
@@ -340,6 +503,19 @@ function runRules<Data extends object>(
     if (!passed) return [{ code: rule.code, message: rule.message, path: [] }]
   }
   return []
+}
+
+export function anyOf<Data extends object = ValidationData>(
+  rules: readonly Rule<Data>[],
+  message = '허용된 형식 중 하나에 맞게 입력해주세요.',
+): Rule<Data> {
+  if (rules.length === 0) throw new RangeError('anyOf에는 하나 이상의 검증 룰이 필요합니다.')
+  const alternatives = rules.map(rule => ({ ...rule }))
+  return {
+    code: 'anyOf', message,
+    required: alternatives.every(rule => rule.required === true),
+    test: (value, data) => alternatives.some(rule => runRules([rule], value, data).length === 0),
+  }
 }
 
 export function each<Data extends object = ValidationData>(

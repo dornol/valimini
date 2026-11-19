@@ -136,3 +136,40 @@ test('numeric options are snapshotted and retain both old and new custom message
   }
   assert.throws(() => number({ thousandsSeparator: '.' }), TypeError)
 })
+
+test('integer checks the original fractional digits and optionally requires a safe integer', () => {
+  for (const value of ['1.00000000000000001', '9,007,199,254,740,991.1', `0.${'0'.repeat(325)}1`]) {
+    assert.equal(accepts(integer(numeric), value), false, value)
+  }
+  for (const value of [Number.MAX_SAFE_INTEGER, '-9,007,199,254,740,991.00', '+1,000.0']) {
+    assert.equal(accepts(integer({ ...numeric, safe: true }), value), true)
+  }
+  for (const value of [Number.MAX_SAFE_INTEGER + 1, '9,007,199,254,740,993', '-9,007,199,254,740,992']) {
+    assert.equal(accepts(integer({ ...numeric, safe: true }), value), false)
+    assert.equal(accepts(integer(numeric), value), true)
+  }
+})
+
+test('exact decimal range comparison preserves input digits and inclusive bounds', () => {
+  const options = { ...numeric, exactDecimal: true }
+  for (const [rule, value] of [
+    [max(1, options), '1.00000000000000001'],
+    [min(1, options), '0.99999999999999999'],
+    [min(-1000, options), '-1,000.00000000000001'],
+    [max(-1, options), '-0.99999999999999999'],
+    [max(1e21, options), '1,000,000,000,000,000,000,001'],
+    [min(1e-7, options), '0.000000099999999999999999999'],
+    [max(0, options), `0.${'0'.repeat(325)}1`],
+    [min(0, options), `-0.${'0'.repeat(325)}1`],
+  ]) {
+    assert.equal(accepts(rule, value), false, value)
+  }
+  for (const [limit, value] of [[-1000, '-1,000.00'], [0, '-000.000'], [0.1, '+000.100'], [1e-7, '0.000000100'], [1e21, '1,000,000,000,000,000,000,000'], [1, 1]]) {
+    assert.equal(accepts(min(limit, options), value), true, String(value))
+    assert.equal(accepts(max(limit, options), value), true, String(value))
+  }
+  assert.equal(accepts(max(1, numeric), '1.00000000000000001'), true)
+  assert.equal(accepts(max(1, { exactDecimal: true }), '1'), false)
+  assert.equal(accepts(max(1, options), '1,00'), false)
+  assert.equal(accepts(max(1, options), '1e-7'), false)
+})
