@@ -55,6 +55,7 @@ jobs:
             dist/valimini.js \
             dist/valimini.global.js \
             dist/index.d.ts \
+            LICENSE \
             --verify-tag \
             --title "valimini $TAG" \
             --generate-notes
