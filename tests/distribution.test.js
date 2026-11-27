@@ -33,4 +33,6 @@ test('classic script exposes the same public API without a module loader', () =>
   assert.equal(result.firstError.name, 'users[0].age')
   assert.equal(result.firstError.code, 'min')
   assert.equal(validator.validate({ users: [{ age: 0 }], price: '1,000' }).valid, true)
+  const nested = global.createValidator({ owner: [global.object(user)] })
+  assert.equal(nested.validate({ owner: { age: -1 } }).firstError.name, 'owner.age')
 })
