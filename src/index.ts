@@ -571,9 +571,11 @@ export function each<Data extends object = ValidationData>(
 }
 
 export function createValidator<Data extends object = ValidationData>(rules: Rules<Data>): Validator<Data> {
-  const fields = Object.entries(rules).map(([field, entries]) => [
-    field, (entries as readonly Rule<Data>[]).map(rule => ({ ...rule })),
-  ] as const)
+  const fields = Object.entries(rules)
+    .filter(([, entries]) => entries !== undefined)
+    .map(([field, entries]) => [
+      field, (entries as readonly Rule<Data>[]).map(rule => ({ ...rule })),
+    ] as const)
 
   return {
     validate(data: Partial<Data>): ValidationResult {

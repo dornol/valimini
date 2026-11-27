@@ -18,6 +18,8 @@ const user = createValidator<User>({
   confirm: [matchesField<User>('name'), requiredIf<User>(data => data.name === 'x')],
 })
 
+createValidator<User>({ name: Math.random() > 0.5 ? [required()] : undefined })
+
 const result: ValidationResult = user.validate({ name: 'a' })
 if (!result.valid) {
   const name: string = result.firstError.name

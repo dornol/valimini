@@ -234,3 +234,12 @@ test('corporate registration number accepts a message as its only argument', () 
 test('url requires "//" right after the scheme, not merely somewhere in the value', () => {
   assert.equal(v.url().test('https:example.com/http://x', {}), false)
 })
+
+test('fields whose rules are undefined are treated as undeclared', () => {
+  const validator = createValidator({ skipped: undefined, name: [required()] })
+  const result = validator.validate({})
+  assert.deepEqual(Object.keys(result.errors), ['name'])
+  assert.equal(result.firstError.field, 'name')
+  assert.equal(createValidator({ skipped: undefined }).validate({ skipped: '' }).valid, true)
+  assert.throws(() => createValidator({ broken: null }), TypeError)
+})
