@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   createValidator, required, email, integer, min, minItems, maxItems, custom,
-  time, beforeTime, afterTime, each, matchesField, pathToName,
+  time, beforeTime, afterTime, each, object, matchesField, pathToName,
 } from '../dist/valimini.js'
 
 const accepts = (rule, value) => createValidator({ value: [rule] }).validate({ value }).valid
@@ -120,4 +120,40 @@ test('path names distinguish literal property punctuation and numeric indices', 
   const result = createValidator({ ['user.name']: [required()] }).validate({})
   assert.deepEqual(result.firstError.path, ['user.name'])
   assert.equal(result.firstError.name, '["user.name"]')
+})
+
+test('object reports every inner field with nested paths and uses the inner object context', () => {
+  const address = createValidator({
+    zip: [required()],
+    confirm: [matchesField('zip')],
+  })
+  const validator = createValidator({ address: [object(address)] })
+  const result = validator.validate({ address: { confirm: 'x' }, zip: 'x' })
+  assert.deepEqual(result.errors.address.map(error => [error.name, error.code]), [
+    ['address.zip', 'required'], ['address.confirm', 'matchesField'],
+  ])
+  assert.deepEqual(result.firstError.path, ['address', 'zip'])
+  assert.equal(validator.validate({ address: { zip: '1', confirm: '1' } }).valid, true)
+})
+
+test('object skips optional empty values and rejects non-objects with its message', () => {
+  const inner = createValidator({ name: [required()] })
+  const optional = createValidator({ user: [object(inner, 'bad object')] })
+  for (const user of [undefined, null, '', []]) assert.equal(optional.validate({ user }).valid, true)
+  for (const user of ['text', 1, false, [{}]]) {
+    const { firstError } = optional.validate({ user })
+    assert.deepEqual([firstError.code, firstError.message, firstError.name], ['object', 'bad object', 'user'])
+  }
+  assert.equal(optional.validate({ user: {} }).firstError.name, 'user.name')
+  assert.equal(createValidator({ user: [required(), object(inner)] }).validate({}).firstError.code, 'required')
+})
+
+test('object composes with each across multiple levels', () => {
+  const address = createValidator({ zip: [required()] })
+  const user = createValidator({ address: [object(address)] })
+  const team = createValidator({ users: [each(user)] })
+  const result = createValidator({ team: [object(team)] }).validate({ team: { users: [{ address: {} }] } })
+  assert.equal(result.firstError.name, 'team.users[0].address.zip')
+  const listed = createValidator({ items: [each([object(address)])] }).validate({ items: [{}] })
+  assert.equal(listed.firstError.name, 'items[0].zip')
 })

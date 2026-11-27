@@ -518,6 +518,27 @@ export function anyOf<Data extends object = ValidationData>(
   }
 }
 
+function inspectObject<Data extends object>(validator: Validator<Data>, value: unknown, message: string): RuleIssue[] {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    return [{ code: 'object', message, path: [] }]
+  }
+  const result = validator.validate(value as Partial<Data>)
+  return Object.values(result.errors).flatMap(errors =>
+    errors.map(({ code, message, path }) => ({ code, message, path })))
+}
+
+export function object<Data extends object = ValidationData>(
+  validator: Validator<Data>,
+  message = '객체를 입력해주세요.',
+): Rule {
+  const inspect = (value: unknown) => inspectObject(validator, value, message)
+  return {
+    code: 'object', message,
+    test: value => inspect(value).length === 0,
+    [inspectIssues]: inspect,
+  }
+}
+
 export function each<Data extends object = ValidationData>(
   item: readonly Rule[] | Validator<Data>,
   message = '배열을 입력해주세요.',
@@ -534,14 +555,9 @@ export function each<Data extends object = ValidationData>(
         for (const issue of runRules(rules, entry, data)) {
           issues.push({ ...issue, path: [index, ...issue.path] })
         }
-      } else if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
-        issues.push({ code: 'object', message: '객체를 입력해주세요.', path: [index] })
       } else {
-        const result = validator!.validate(entry as Partial<Data>)
-        for (const errors of Object.values(result.errors)) {
-          for (const error of errors) {
-            issues.push({ code: error.code, message: error.message, path: [index, ...error.path] })
-          }
+        for (const issue of inspectObject(validator!, entry, '객체를 입력해주세요.')) {
+          issues.push({ ...issue, path: [index, ...issue.path] })
         }
       }
     }

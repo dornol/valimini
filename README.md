@@ -151,9 +151,9 @@ npm run preview -- --outDir demo-dist
 
 일반전화, 휴대전화, 팩스에는 숫자 묶음 사이에 하이픈이나 공백을 쓰거나 구분자를 모두 생략할 수 있습니다. 국제 표기는 국내 번호의 앞 `0`을 `+82`로 바꿉니다. 예를 들어 `01012345678`, `02-123-4567`, `070 1234 5678`, `0504-123-4567`, `+82 10-1234-5678`처럼 입력할 수 있습니다. 전국대표번호는 국내 표기를 사용합니다. 전화번호 룰은 내선번호를 제외하며, 실제 개통 여부나 팩스 수신 가능 여부는 확인하지 않습니다.
 
-빈 값은 일반 규칙에서 건너뜁니다. `required`, `requiredIf`, `accepted`는 빈 값에서도 실행하며, 배열 개수 규칙은 빈 배열의 길이도 검사합니다. 필수 항목에는 `required()`를 추가하세요. 각 필드에서 처음 실패한 규칙의 오류를 수집하고 다른 필드의 검증은 계속합니다. `each`가 실패하면 각 항목의 오류를 모으며, 항목별로는 처음 실패한 규칙까지만 검사합니다. 객체 항목은 각 속성의 첫 오류를 수집합니다. `firstError`는 규칙 객체의 필드 순서에 따릅니다. 정수 형태의 필드 이름은 JavaScript 객체 순서에 따라 숫자 순으로 처리됩니다.
+빈 값은 일반 규칙에서 건너뜁니다. `required`, `requiredIf`, `accepted`는 빈 값에서도 실행하며, 배열 개수 규칙은 빈 배열의 길이도 검사합니다. 필수 항목에는 `required()`를 추가하세요. 각 필드에서 처음 실패한 규칙의 오류를 수집하고 다른 필드의 검증은 계속합니다. `object`가 실패하면 내부 각 속성의 오류를 모읍니다. `each`가 실패하면 각 항목의 오류를 모으며, 항목별로는 처음 실패한 규칙까지만 검사합니다. 객체 항목은 각 속성의 첫 오류를 수집합니다. `firstError`는 규칙 객체의 필드 순서에 따릅니다. 정수 형태의 필드 이름은 JavaScript 객체 순서에 따라 숫자 순으로 처리됩니다.
 
-누락된 필드는 `undefined`로 검사하고, 규칙에 없는 필드는 무시합니다. 규칙 객체의 키는 문자 그대로의 속성 이름이며 점이나 대괄호를 경로로 해석하지 않습니다. 중첩 리스트는 `each`와 검증기를 조합해 검사합니다. 검증기는 입력을 변경하지 않습니다. 사용자 정의 규칙도 입력을 변경하지 않도록 작성하세요.
+누락된 필드는 `undefined`로 검사하고, 규칙에 없는 필드는 무시합니다. 규칙 객체의 키는 문자 그대로의 속성 이름이며 점이나 대괄호를 경로로 해석하지 않습니다. 중첩 객체는 `object`, 리스트는 `each`와 검증기를 조합해 검사합니다. 검증기는 입력을 변경하지 않습니다. 사용자 정의 규칙도 입력을 변경하지 않도록 작성하세요.
 
 비객체 입력과 boolean을 반환하지 않는 규칙은 `TypeError`를 발생시킵니다. 사용자 정의 규칙이 던진 예외도 호출자에게 전달됩니다. 비동기 검증은 아직 지원하지 않습니다.
 
@@ -288,6 +288,33 @@ const result = validator.validate({
 단순 항목 규칙의 `custom`, `requiredIf`, 필드 비교 룰은 리스트를 가진 부모 데이터를 받습니다. 객체 검증기의 규칙은 해당 항목 객체를 받습니다. `each([each([...])])`와 객체 검증기를 조합해 여러 단계 리스트도 검사할 수 있습니다.
 
 `errors`는 기존처럼 최상위 필드로 묶습니다. 예를 들어 여러 사용자에게 오류가 있으면 `errors.users`에 각 오류의 `path`, `name`과 함께 모읍니다. `firstError`는 필드 선언 순서, 배열 인덱스 순서, 객체 내부 필드 순서로 결정합니다.
+
+## 중첩 객체 검증
+
+```js
+import { createValidator, required, koreanPostalCode, object } from './dist/valimini.js';
+
+const addressValidator = createValidator({
+  zip: [required(), koreanPostalCode()],
+  street: [required()],
+});
+
+const validator = createValidator({
+  name: [required()],
+  address: [required(), object(addressValidator)],
+});
+
+const result = validator.validate({
+  name: '홍길동',
+  address: { zip: '123', street: '테헤란로' },
+});
+// result.firstError.path: ['address', 'zip']
+// result.firstError.name: 'address.zip'
+```
+
+`object(validator, message?)`는 객체 하나에 별도 검증기를 적용합니다. 객체가 아닌 값이나 배열은 `object` 오류를 반환하며, `message`는 이 오류에만 사용합니다. 내부 필드의 오류는 내부 룰의 코드와 메시지를 유지합니다. 누락·`null`·빈 문자열·빈 배열은 선택 항목으로 건너뛰므로 필수 객체에는 `required()`를 추가하세요. `{}`는 빈 값이 아니므로 내부 룰로 검사합니다.
+
+내부 검증기의 `custom`, `requiredIf`, 필드 비교 룰은 전체 데이터가 아닌 해당 객체를 받습니다. `errors`는 최상위 필드로 묶으므로 위 예제의 오류는 `errors.address`에 모입니다. `object()`와 `each()`는 검증기를 조합해 여러 단계로 중첩할 수 있습니다.
 
 ## 오류 경로와 HTML 연결
 
